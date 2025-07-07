@@ -13,7 +13,12 @@ public class FileManipulator {
     /**
      * 定数
      */
-    public static final String[] INPUTS = { "reverse", "copy", "duplicate-contents", "replace-string" };
+    public static final String[] INPUTS = {
+            "reverse",
+            "copy",
+            "duplicate-contents",
+            "replace-string"
+    };
 
     /**
      * 実行クラス
@@ -75,6 +80,22 @@ public class FileManipulator {
         }
 
         if (inputsType == 2) {
+            if (!isValidFile(args, inputsType)) {
+                System.err.println("格納ファイルが不正です。");
+                System.exit(1);
+            }
+            if (!isNumber(args[2])) {
+                System.err.println("指定した複製回数nが不正です。");
+                System.exit(1);
+            }
+            try {
+                execDuplicateContents(args[1], args[1], Integer.parseInt(args[2]));
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("ファイルの入出力に失敗しました。");
+                System.exit(1);
+            }
         }
         if (inputsType == 3) {
         }
@@ -109,7 +130,7 @@ public class FileManipulator {
         }
 
         // inputをoutputに書き込みまで
-        writeOutput(newArrayList);
+        writeOutput(newArrayList, outputPath, false);
     }
 
     /**
@@ -122,7 +143,7 @@ public class FileManipulator {
         ArrayList<String> newArrayList = new ArrayList<>();
 
         try {
-            // inputを読み込み、reverseするところまで
+            // inputを読み込み、copyするところまで
             BufferedReader reader = new BufferedReader(new FileReader(inputPath));
 
             ArrayList<String> tmpArrayList = new ArrayList<>();
@@ -141,22 +162,76 @@ public class FileManipulator {
         }
 
         // inputをoutputに書き込みまで
-        writeOutput(newArrayList);
+        writeOutput(newArrayList, outputPath, false);
     }
 
     /**
-     * 出力ファイルに１行ずつ書き込む（事前に内容リセット）
+     * 指定された入力ファイルの内容を、出力ファイルにコピーする *
+     * 
+     * @param inputPath
+     * @param outputPath
+     * @param copyCount
+     */
+    private static void execDuplicateContents(String inputPath, String outputPath, int copyCount) throws IOException {
+        ArrayList<String> newArrayList = new ArrayList<>();
+
+        try {
+            // inputを読み込み、copyするところまで
+            BufferedReader reader = new BufferedReader(new FileReader(inputPath));
+
+            ArrayList<String> tmpArrayList = new ArrayList<>();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                tmpArrayList.add(line);
+            }
+
+            for (var el : tmpArrayList) {
+                newArrayList.add(el);
+            }
+
+        } catch (IOException e) {
+            System.err.println("読み込み失敗: " + e.getMessage());
+        }
+
+        // ファイルの内容をリセットする
+        resetFile(outputPath);
+
+        // inputをoutputに書き込みまで
+        for (var i = 0; i < copyCount; i++) {
+            writeOutput(newArrayList, outputPath, true);
+        }
+    }
+
+    /**
+     * 出力ファイルに１行ずつ書き込む
      * 
      * @param list
+     * @param filePath
+     * @param shouldAppend
      */
-    private static void writeOutput(ArrayList<String> list) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.txt", false))) {
+    private static void writeOutput(ArrayList<String> list, String filePath, boolean shouldAppend) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, shouldAppend))) {
             for (var txt : list) {
                 writer.write(txt);
                 writer.newLine();
             }
         } catch (IOException e) {
             System.err.println("書き込み失敗: " + e.getMessage());
+        }
+    }
+
+    /**
+     * ファイルの内容をリセットする
+     * 
+     * @param filePath
+     */
+    private static void resetFile(String filePath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, false))) {
+            // 何も書かないことでファイルの内容を空にする
+            System.out.println("ファイルの内容をリセットしました。");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -226,6 +301,24 @@ public class FileManipulator {
         }
 
         if (inputsType == 2) {
+            inputPath = Paths.get(inputs[1]);
+
+            // パスが正しくパースできるか、存在するかをチェック
+            if (!Files.exists(inputPath)) {
+                return false;
+            }
+
+            // ファイルかどうか（ディレクトリではない）もチェック
+            if (!Files.isRegularFile(inputPath)) {
+                return false;
+            }
+
+            // 拡張子が ".txt" か確認
+            if (!inputs[1].toLowerCase().endsWith(".txt")) {
+                return false;
+            }
+
+            return true;
         }
 
         if (inputsType == 3) {
@@ -234,6 +327,25 @@ public class FileManipulator {
         return false;
     }
 
+    /**
+     * 渡した引数が整数か判定する
+     * 
+     * @param str
+     * @return
+     */
+    private static boolean isNumber(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
 
 // 以下のコマンドとその機能を提供する file_manipulator.py という Python
