@@ -10,6 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class FileManipulator {
+    /**
+     * 定数
+     */
     public static final String[] INPUTS = { "reverse", "copy", "duplicate-contents", "replace-string" };
 
     /**
@@ -45,13 +48,32 @@ public class FileManipulator {
         if (inputsType == 0) {
             if (!isValidFile(args, inputsType)) {
                 System.err.println("格納ファイルが不正です。");
-                System.exit(1); // エラー終了
+                System.exit(1);
             }
-            execReverse(args[1], args[2]);
+            try {
+                execReverse(args[1], args[2]);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("ファイルの入出力に失敗しました。");
+                System.exit(1);
+            }
         }
 
         if (inputsType == 1) {
+            if (!isValidFile(args, inputsType)) {
+                System.err.println("格納ファイルが不正です。");
+                System.exit(1);
+            }
+            try {
+                execCopy(args[1], args[2]);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("ファイルの入出力に失敗しました。");
+                System.exit(1);
+            }
         }
+
         if (inputsType == 2) {
         }
         if (inputsType == 3) {
@@ -64,7 +86,7 @@ public class FileManipulator {
      * @param inputPath
      * @param outputPath
      */
-    private static void execReverse(String inputPath, String outputPath) {
+    private static void execReverse(String inputPath, String outputPath) throws IOException {
         ArrayList<String> newArrayList = new ArrayList<>();
 
         try {
@@ -87,8 +109,49 @@ public class FileManipulator {
         }
 
         // inputをoutputに書き込みまで
+        writeOutput(newArrayList);
+    }
+
+    /**
+     * 指定された入力ファイルの内容を、出力ファイルにコピーする *
+     * 
+     * @param inputPath
+     * @param outputPath
+     */
+    private static void execCopy(String inputPath, String outputPath) throws IOException {
+        ArrayList<String> newArrayList = new ArrayList<>();
+
+        try {
+            // inputを読み込み、reverseするところまで
+            BufferedReader reader = new BufferedReader(new FileReader(inputPath));
+
+            ArrayList<String> tmpArrayList = new ArrayList<>();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                tmpArrayList.add(line);
+            }
+
+            for (var el : tmpArrayList) {
+                newArrayList.add(el);
+            }
+
+        } catch (IOException e) {
+            System.err.println("読み込み失敗: " + e.getMessage());
+        }
+
+        // inputをoutputに書き込みまで
+        writeOutput(newArrayList);
+    }
+
+    /**
+     * 出力ファイルに１行ずつ書き込む（事前に内容リセット）
+     * 
+     * @param list
+     */
+    private static void writeOutput(ArrayList<String> list) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.txt", false))) {
-            for (var txt : newArrayList) {
+            for (var txt : list) {
                 writer.write(txt);
                 writer.newLine();
             }
@@ -140,7 +203,7 @@ public class FileManipulator {
     private static boolean isValidFile(String[] inputs, int inputsType) {
         Path inputPath;
         Path outputPath;
-        if (inputsType == 0) {
+        if (inputsType == 0 || inputsType == 1) {
             inputPath = Paths.get(inputs[1]);
             outputPath = Paths.get(inputs[2]);
 
@@ -160,9 +223,6 @@ public class FileManipulator {
             }
 
             return true;
-        }
-
-        if (inputsType == 1) {
         }
 
         if (inputsType == 2) {
