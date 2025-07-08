@@ -9,6 +9,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+// 以下のコマンドとその機能を提供する file_manipulator.py という Python
+// スクリプトを作成してください。引数の入力が正しいかどうかをチェックするバリデータを必ず記述しましょう。
+
+// ・reverse inputpath outputpath: inputpathにあるファイルを受け取り、outputpathにinputpathの内容を逆にした新しいファイルを作成します。
+// ・copy inputpath outputpath: inputpathにあるファイルのコピーを作成し、outputpathとして保存します。
+// ・duplicate-contents inputpath n: inputpathにあるファイルの内容を読み込み、その内容を複製し、複製された内容をinputpathにn回複製します。
+// ・replace-string inputpath needle newstring: inputpathにあるファイルの内容から文字列'needle'を検索し、'needle'の全てを'newstring'に置き換えます。
 public class FileManipulator {
     /**
      * 定数
@@ -55,6 +62,7 @@ public class FileManipulator {
                 System.err.println("格納ファイルが不正です。");
                 System.exit(1);
             }
+
             try {
                 execReverse(args[1], args[2]);
             } catch (IOException e) {
@@ -69,6 +77,7 @@ public class FileManipulator {
                 System.err.println("格納ファイルが不正です。");
                 System.exit(1);
             }
+
             try {
                 execCopy(args[1], args[2]);
 
@@ -84,12 +93,14 @@ public class FileManipulator {
                 System.err.println("格納ファイルが不正です。");
                 System.exit(1);
             }
+
             if (!isNumber(args[2])) {
                 System.err.println("指定した複製回数nが不正です。");
                 System.exit(1);
             }
+
             try {
-                execDuplicateContents(args[1], args[1], Integer.parseInt(args[2]));
+                execDuplicateContents(args[1], Integer.parseInt(args[2]));
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -97,7 +108,21 @@ public class FileManipulator {
                 System.exit(1);
             }
         }
+
         if (inputsType == 3) {
+            if (!isValidFile(args, inputsType)) {
+                System.err.println("格納ファイルが不正です。");
+                System.exit(1);
+            }
+
+            try {
+                execReplaceString(args[1], args[2], args[3]);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("ファイルの入出力に失敗しました。");
+                System.exit(1);
+            }
         }
     }
 
@@ -128,13 +153,12 @@ public class FileManipulator {
         } catch (IOException e) {
             System.err.println("読み込み失敗: " + e.getMessage());
         }
-
         // inputをoutputに書き込みまで
         writeOutput(newArrayList, outputPath, false);
     }
 
     /**
-     * 指定された入力ファイルの内容を、出力ファイルにコピーする *
+     * 指定された入力ファイルの内容を、出力ファイルにコピーする
      * 
      * @param inputPath
      * @param outputPath
@@ -156,23 +180,20 @@ public class FileManipulator {
             for (var el : tmpArrayList) {
                 newArrayList.add(el);
             }
-
         } catch (IOException e) {
             System.err.println("読み込み失敗: " + e.getMessage());
         }
-
         // inputをoutputに書き込みまで
         writeOutput(newArrayList, outputPath, false);
     }
 
     /**
-     * 指定された入力ファイルの内容を、出力ファイルにコピーする *
+     * ファイルの内容を読み込み、その内容を複製し、inputpathにn回複製する
      * 
      * @param inputPath
-     * @param outputPath
      * @param copyCount
      */
-    private static void execDuplicateContents(String inputPath, String outputPath, int copyCount) throws IOException {
+    private static void execDuplicateContents(String inputPath, int copyCount) throws IOException {
         ArrayList<String> newArrayList = new ArrayList<>();
 
         try {
@@ -189,18 +210,57 @@ public class FileManipulator {
             for (var el : tmpArrayList) {
                 newArrayList.add(el);
             }
-
         } catch (IOException e) {
             System.err.println("読み込み失敗: " + e.getMessage());
         }
 
         // ファイルの内容をリセットする
-        resetFile(outputPath);
+        resetFile(inputPath);
+
+        // inputに書き込みまで
+        for (var i = 0; i < copyCount; i++) {
+            writeOutput(newArrayList, inputPath, true);
+        }
+    }
+
+    /**
+     * ファイルの内容から文字列'needle'を検索し、'needle'の全てを'newstring'に置き換える
+     * 
+     * @param inputPath
+     * @param outputPath
+     * @param needle
+     * @param newString
+     */
+    private static void execReplaceString(String inputPath, String needle, String newString) throws IOException {
+        ArrayList<String> newArrayList = new ArrayList<>();
+
+        try {
+            // inputを読み込み、copyするところまで
+            BufferedReader reader = new BufferedReader(new FileReader(inputPath));
+
+            ArrayList<String> tmpArrayList = new ArrayList<>();
+
+            String line;
+            String updatedLine;
+            while ((line = reader.readLine()) != null) {
+                if (line.indexOf(needle) != -1) {
+                    updatedLine = line.replace(needle, newString);
+                    tmpArrayList.add(updatedLine);
+                }
+            }
+
+            for (var el : tmpArrayList) {
+                newArrayList.add(el);
+            }
+        } catch (IOException e) {
+            System.err.println("読み込み失敗: " + e.getMessage());
+        }
+
+        // ファイルの内容をリセットする
+        resetFile(inputPath);
 
         // inputをoutputに書き込みまで
-        for (var i = 0; i < copyCount; i++) {
-            writeOutput(newArrayList, outputPath, true);
-        }
+        writeOutput(newArrayList, inputPath, true);
     }
 
     /**
@@ -296,11 +356,10 @@ public class FileManipulator {
             if (!inputs[1].toLowerCase().endsWith(".txt") || !inputs[2].toLowerCase().endsWith(".txt")) {
                 return false;
             }
-
             return true;
         }
 
-        if (inputsType == 2) {
+        if (inputsType == 2 || inputsType == 3) {
             inputPath = Paths.get(inputs[1]);
 
             // パスが正しくパースできるか、存在するかをチェック
@@ -317,13 +376,8 @@ public class FileManipulator {
             if (!inputs[1].toLowerCase().endsWith(".txt")) {
                 return false;
             }
-
             return true;
         }
-
-        if (inputsType == 3) {
-        }
-
         return false;
     }
 
@@ -347,14 +401,3 @@ public class FileManipulator {
         }
     }
 }
-
-// 以下のコマンドとその機能を提供する file_manipulator.py という Python
-// スクリプトを作成してください。引数の入力が正しいかどうかをチェックするバリデータを必ず記述しましょう。
-
-// ・reverse inputpath outputpath: inputpath にあるファイルを受け取り、outputpath に inputpath
-// の内容を逆にした新しいファイルを作成します。
-// ・copy inputpath outputpath: inputpath にあるファイルのコピーを作成し、outputpath として保存します。
-// ・duplicate-contents inputpath n: inputpath にあるファイルの内容を読み込み、その内容を複製し、複製された内容を
-// inputpath に n 回複製します。
-// ・replace-string inputpath needle newstring: inputpath にあるファイルの内容から文字列
-// 'needle' を検索し、'needle' の全てを 'newstring' に置き換えます。
